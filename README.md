@@ -1,14 +1,3 @@
-# googlechat_export_recover
-A Python script to export Google Chat data into organized HTML files with folder renaming
-
-## Usage
-1. Go to https://takeout.google.com/ and export all Google Chats
-2. Once downloaded unzip all the content in one folder
-3. Add googlechat_export_recover.py to the main Takeout folder
-4. Run python googlechat_export_recover.py
-5. You can now browse folders, that will have name for the Group or members of the chat
-6. Inside each folder you will find an HTML file named as the folder which contains all the chat
-
 # **Google Chat Export Recovery**
 
 A Python script to export Google Chat data into organized HTML files, with automatic folder renaming based on chat participants or group names.
@@ -35,3 +24,29 @@ A Python script to export Google Chat data into organized HTML files, with autom
 Install dependencies with:
 ```bash
 pip install jinja2
+
+---
+
+## **Usage**
+
+1. **Export your Google Chat data**:
+   - Visit [Google Takeout](https://takeout.google.com/).
+   - Select **Google Chat** from the list of services.
+   - Export your data by following the on-screen instructions.
+
+2. **Unzip the exported data**:
+   - Once downloaded, unzip the Google Takeout archive into a folder of your choice.
+
+3. **Run the script**:
+   - Place the `googlechat_export_recover.py` script in the root of the unzipped folder.
+   - Open a terminal or command prompt, navigate to the folder, and run the following command:
+     ```bash
+     python googlechat_export_recover.py
+     ```
+
+4. **Explore the results**:
+   - The script will process all subfolders recursively and organize chats:
+     - Each chat will have its own folder renamed based on the group name or participants' names.
+     - Inside each folder, you will find an HTML file (e.g., `Group_Name_Chat.html`) containing the chat conversation.
+
+
