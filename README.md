@@ -24,6 +24,7 @@ A Python script to export Google Chat data into organized HTML files, with autom
 Install dependencies with:
 ```bash
 pip install jinja2
+```
 
 ---
 
