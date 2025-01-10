@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from datetime import datetime
 from jinja2 import Template
@@ -14,6 +15,9 @@ def format_timestamp(date_str):
     dt = datetime.strptime(date_str, "%A, %B %d, %Y at %I:%M:%S %p %Z")
     return dt.strftime("%d/%B/%Y %H:%M:%S")
 
+# Function to sanitize file and folder names
+def sanitize_name(name):
+    return re.sub(r'[<>:"/\\|?*]', '_', name)  # Replace invalid characters with '_'
 # Generate a dictionary of unique colors for users
 def assign_colors(users):
     pastel_colors = [
@@ -24,6 +28,30 @@ def assign_colors(users):
         "rgba(255, 255, 224, 0.8)",  # Light Yellow
         "rgba(221, 160, 221, 0.8)",  # Plum
         "rgba(255, 222, 173, 0.8)",  # Navajo White
+        "rgba(135, 206, 250, 0.8)",  # Sky Blue
+        "rgba(176, 224, 230, 0.8)",  # Powder Blue
+        "rgba(250, 250, 210, 0.8)",  # Light Goldenrod Yellow
+        "rgba(240, 230, 140, 0.8)",  # Khaki
+        "rgba(245, 222, 179, 0.8)",  # Wheat
+        "rgba(244, 164, 96, 0.8)",   # Sandy Brown
+        "rgba(255, 160, 122, 0.8)",  # Light Salmon
+        "rgba(233, 150, 122, 0.8)",  # Dark Salmon
+        "rgba(250, 128, 114, 0.8)",  # Salmon
+        "rgba(240, 128, 128, 0.8)",  # Light Coral
+        "rgba(255, 218, 185, 0.8)",  # Peach Puff
+        "rgba(245, 245, 220, 0.8)",  # Beige
+        "rgba(255, 228, 196, 0.8)",  # Bisque
+        "rgba(255, 239, 213, 0.8)",  # Papaya Whip
+        "rgba(255, 248, 220, 0.8)",  # Cornsilk
+        "rgba(230, 230, 250, 0.8)",  # Lavender
+        "rgba(255, 240, 245, 0.8)",  # Lavender Blush
+        "rgba(240, 255, 240, 0.8)",  # Honeydew
+        "rgba(240, 255, 255, 0.8)",  # Azure
+        "rgba(255, 245, 238, 0.8)",  # Seashell
+        "rgba(255, 228, 225, 0.8)",  # Misty Rose
+        "rgba(255, 250, 240, 0.8)",  # Floral White
+        "rgba(250, 240, 230, 0.8)",  # Linen
+        "rgba(253, 245, 230, 0.8)"   # Old Lace
     ]
     color_cycle = itertools.cycle(pastel_colors)
     return {user: next(color_cycle) for user in users}
@@ -50,17 +78,22 @@ def generate_unique_folder_name(base_path, folder_name):
     return new_folder_name
 
 # Generate HTML with modal and user-specific colors
-def generate_html(messages, user_colors, output_path):
+def generate_html(messages, user_colors, user_email, output_path):
     template = """
     <!DOCTYPE html>
     <html>
     <head>
         <title>Chat Export</title>
         <style>
-            body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; }
-            .message { margin-bottom: 20px; padding: 10px; border-radius: 10px; max-width: 60%; }
+            body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 5px; }
+            .chat-container { display: flex; flex-direction: column; }
+            .message { margin-bottom: 20px; padding: 10px; border-radius: 15px; max-width: 60%; }
+            .message.left { align-self: flex-start; background-color: {{ user_colors['left'] }}; }
+            .message.right { align-self: flex-end; background-color: {{ user_colors['right'] }}; }
+            .message.right .bubble { background-color: rgba(173, 216, 230, 0.8); }
+            .bubble { padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
             .sender { font-weight: bold; margin-bottom: 5px; }
-            .timestamp { font-size: 0.8em; color: gray; margin-bottom: 5px; }
+            .timestamp { font-size: 0.8em; color: gray; margin-top: 5px; text-align: right; }
             .image { height: 100px; cursor: pointer; border-radius: 5px; }
             .modal { 
                 display: none; 
@@ -91,26 +124,28 @@ def generate_html(messages, user_colors, output_path):
         </style>
     </head>
     <body>
-        <div style="display: flex; flex-direction: column;">
+        <div class="chat-container"> 
             {% for msg in messages %}
-            <div class="message" style="background-color: {{ user_colors[msg['sender']] }};">
-                <div class="sender">{{ msg['sender'] }}</div>
-                <div class="timestamp">{{ msg['timestamp'] }}</div>
-                {% if msg['type'] == 'text' %}
-                    <div>{{ msg['content'] }}</div>
-                {% elif msg['type'] == 'image' %}
-                    <div>
-                        {% for image in msg['content'] %}
-                        <img src="{{ image }}" class="image" alt="Image" onclick="openModal('{{ image }}')">
-                        {% endfor %}
-                    </div>
-                {% elif msg['type'] == 'file' %}
-                    <div>
-                        {% for file in msg['content'] %}
-                        <a href="{{ file }}" download>{{ file }}</a><br>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <div class="message {{ 'right' if msg['sender_email'] == user_email else 'left' }}" style="background-color: {{ user_colors[msg['sender']] }};">
+                <div class="bubble">           
+                    <div class="sender">{{ msg['sender'] }}</div>
+                    <div class="timestamp">{{ msg['timestamp'] }}</div>
+                    {% if msg['type'] == 'text' %}
+                        <div>{{ msg['content'] }}</div>
+                    {% elif msg['type'] == 'image' %}
+                        <div>
+                            {% for image in msg['content'] %}
+                            <img src="{{ image }}" class="image" alt="Image" onclick="openModal('{{ image }}')">
+                            {% endfor %}
+                        </div>
+                    {% elif msg['type'] == 'file' %}
+                        <div>
+                            {% for file in msg['content'] %}
+                            <a href="{{ file }}" download>{{ file }}</a><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -138,13 +173,13 @@ def generate_html(messages, user_colors, output_path):
     </html>
     """
     jinja_template = Template(template)
-    rendered_html = jinja_template.render(messages=messages, user_colors=user_colors)
+    rendered_html = jinja_template.render(messages=messages, user_colors=user_colors, user_email=user_email)
 
     with open(output_path, "w", encoding="utf-8") as html_file:
         html_file.write(rendered_html)
 
 # Process a single folder
-def process_chat_folder(folder_path):
+def process_chat_folder(folder_path, user_email):
     chat_file = os.path.join(folder_path, "messages.json")
     group_file = os.path.join(folder_path, "group_info.json")
     
@@ -174,15 +209,14 @@ def process_chat_folder(folder_path):
     for msg in chat_data.get("messages", []):
         if msg.get("message_state") == "DELETED":
             continue  # Skip deleted messages
-        unique_users.add(msg["creator"]["name"])
+        if msg["creator"]["user_type"] == "Bot":
+            continue  # Skip bot messages
     
-    user_colors = assign_colors(unique_users)
-
-    for msg in chat_data.get("messages", []):
-        if msg.get("message_state") == "DELETED":
-            continue  # Skip deleted messages
+        creator = msg.get("creator", {})
+        sender = creator.get("name", "DeletedUser")
+        sender_email = creator.get("email", "unknown@deleted")
+        unique_users.add(sender)
         timestamp = format_timestamp(msg["created_date"])
-        sender = msg["creator"]["name"]
 
         if "text" in msg:  # Text messages
             messages.append({
@@ -214,18 +248,18 @@ def process_chat_folder(folder_path):
                     "content": files,
                     "type": "file"
                 })
-
+    user_colors = assign_colors(unique_users)
     # Determine output file name
     if group_name:
         output_name = group_name.replace(" ", "_").replace("/","_")
     else:
         valid_names = [name.replace(" ", "_") for name in current_members]
-        output_name = "_".join(valid_names)
+        output_name = "_".join(valid_names)                           
 
-    output_file = os.path.join(folder_path, f"{output_name}_Chat.html")
-
+    output_file = os.path.join(folder_path, f"{output_name}_Chat.html") 
+    
     # Generate HTML
-    generate_html(messages, user_colors, output_file)
+    generate_html(messages, user_colors, user_email, output_file)
 
     # Rename the folder, ensuring unique name
     parent_path = os.path.dirname(folder_path)
@@ -237,12 +271,14 @@ def process_chat_folder(folder_path):
 
 # Traverse all folders recursively
 def process_all_folders(root_path):
+    user_email = input("Enter your email address to align your messages to the right: ").strip()
     for dirpath, dirnames, filenames in os.walk(root_path):
         if "messages.json" in filenames and "group_info.json" in filenames:
-            process_chat_folder(dirpath)
+            process_chat_folder(dirpath, user_email)
 
-# Root directory to process
-root_directory = "."  # Replace with the actual root directory
+# Entry point
+if __name__ == "__main__":
+    root_directory = "."  # Replace with the actual root directory
 
-# Execute the script
-process_all_folders(root_directory)
+                    
+    process_all_folders(root_directory)
